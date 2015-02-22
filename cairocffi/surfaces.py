@@ -53,9 +53,16 @@ def _encode_filename(filename):
     return ffi.new('char[]', filename)
 
 
+CFFI_HAS_FROM_BUFFER = hasattr(ffi, 'from_buffer')
+
+
 def from_buffer(obj):
     """Return ``(pointer_address, length_in_bytes)`` for a buffer object."""
-    if hasattr(obj, 'buffer_info'):
+    # ffi.from_buffer black-lists bytearray, even though that only makes sense on PyPy.
+    if CFFI_HAS_FROM_BUFFER and not isinstance(obj, bytearray):
+        buf = ffi.from_buffer(obj)
+        return buf, len(buf)
+    elif hasattr(obj, 'buffer_info'):
         # Looks like a array.array object.
         address, length = obj.buffer_info()
         return address, length * obj.itemsize
